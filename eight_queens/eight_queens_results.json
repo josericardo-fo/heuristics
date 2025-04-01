@@ -1,0 +1,21 @@
+{
+  "hill_climbing": {
+    "success_rate": 14.499999999999998,
+    "avg_execution_time": 0.0010558373928070068,
+    "avg_iterations": 4.173,
+    "avg_conflicts": 1.249,
+    "min_conflicts": 0,
+    "max_conflicts": 4,
+    "num_experiments": 1000
+  },
+  "simulated_annealing": {
+    "success_rate": 46.9,
+    "avg_execution_time": 0.014775750398635865,
+    "avg_iterations": 901.114,
+    "avg_conflicts": 0.539,
+    "min_conflicts": 0,
+    "max_conflicts": 2,
+    "num_experiments": 1000
+  },
+  "date": "2025-04-01 15:27:57"
+}
