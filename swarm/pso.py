@@ -81,10 +81,10 @@ def pso(
     verbose=False,
     func_name=None,
 ):
-    """Perticle Swarm Optimization (PSO)
+    """Particle Swarm Optimization (PSO)
     # Arguments
         func: function to be optimized
-        bounds: list, bounds of each dimention
+        bounds: list, bounds of each dimension
         swarm_size: int, the population size of the swarm
         inertia: float, coefficient of momentum
         pa: float, personal acceleration
@@ -187,7 +187,7 @@ def visualizeHistory2D(
     # Arguments
         func: object function
         history: dict, object returned from pso above
-        bounds: list, bounds of each dimention
+        bounds: list, bounds of each dimension
         minima: list, the exact minima to show in the plot
         func_name: str, the name of the object function
         save2mp4: bool, whether to save as mp4 or not
@@ -274,7 +274,7 @@ def visualizeHistory2D(
         animate,
         fargs=(history,),
         frames=len(history["particles"]),
-        interval=250,
+        interval=50,
         repeat=False,
         blit=False,
     )
@@ -360,44 +360,31 @@ def visualizeFunction3D(
 def experiment_suits():
     """Perform PSO Experiments
     Current test set:
-        ['Rosenbrock Function', 'Ackley Function']
+        ['Elliptic Function', 'Weierstrass Function']
     """
     # settings
     save2mp4 = False
     save2gif = False
-    obj_functions = [rosenbrock_fun, ackley_fun, elliptic_fun, weierstrass_fun]
+    obj_functions = [elliptic_fun, weierstrass_fun]
     obj_func_names = [
-        "Rosenbrock Function",
-        "Ackley Function",
         "Elliptic Function",
         "Weierstrass Function",
     ]
-    each_boundaries = [
-        [[-2, 2], [-2, 2]],
-        [[-32, 32], [-32, 32]],
-        [[-100, 100], [-100, 100]],
-        [[-0.5, 0.5], [-0.5, 0.5]],
-    ]
-    global_minima = [
-        [1, 1],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-    ]
-    swarmsizes_for_each_trial = [5, 15, 35, 50]
-    num_iterations = 50
+    swarmsizes_for_each_trial = [30, 50, 100]
+    num_iterations = [500, 1000, 2000]
 
     # experiments
-    for ofunc, ofname, bounds, g_minimum in zip(
-        obj_functions, obj_func_names, each_boundaries, global_minima
-    ):
-        for swarm_size in swarmsizes_for_each_trial:
+    for ofunc, ofname in zip(obj_functions, obj_func_names):
+        for swarm_size, num_iters in zip(swarmsizes_for_each_trial, num_iterations):
             # pso
             history = pso(
                 func=ofunc,
-                bounds=bounds,
+                bounds=[[-100, 100], [-100, 100]],
                 swarm_size=swarm_size,
-                num_iters=num_iterations,
+                inertia=0.5,
+                pa=2.0,
+                ga=2.0,
+                num_iters=num_iters,
                 verbose=0,
                 func_name=ofname,
             )
@@ -411,8 +398,8 @@ def experiment_suits():
             visualizeHistory2D(
                 func=ofunc,
                 history=history,
-                bounds=bounds,
-                minima=g_minimum,
+                bounds=[[-100, 100], [-100, 100]],
+                minima=[0, 0],
                 func_name=ofname,
                 save2mp4=save2mp4,
                 save2gif=save2gif,
@@ -420,7 +407,7 @@ def experiment_suits():
 
 
 ## Perform experiment sets
-# experiment_suits()
+experiment_suits()
 
 
 ## If you want to manually execute
@@ -449,30 +436,30 @@ def experiment_suits():
 #                   minima=[0,0], func_name='Weierstrass Function', save2mp4=False, save2gif=False)
 
 # Visualize all functions in 3D
-visualizeFunction3D(
-    func=rosenbrock_fun,
-    bounds=[[-2, 2], [-2, 2]],
-    minima=[1, 1],
-    func_name="Rosenbrock Function",
-)
+# visualizeFunction3D(
+#     func=rosenbrock_fun,
+#     bounds=[[-2, 2], [-2, 2]],
+#     minima=[1, 1],
+#     func_name="Rosenbrock Function",
+# )
 
-visualizeFunction3D(
-    func=ackley_fun,
-    bounds=[[-32, 32], [-32, 32]],
-    minima=[0, 0],
-    func_name="Ackley Function",
-)
+# visualizeFunction3D(
+#     func=ackley_fun,
+#     bounds=[[-32, 32], [-32, 32]],
+#     minima=[0, 0],
+#     func_name="Ackley Function",
+# )
 
-visualizeFunction3D(
-    func=elliptic_fun,
-    bounds=[[-100, 100], [-100, 100]],
-    minima=[0, 0],
-    func_name="Elliptic Function",
-)
+# visualizeFunction3D(
+#     func=elliptic_fun,
+#     bounds=[[-100, 100], [-100, 100]],
+#     minima=[0, 0],
+#     func_name="Elliptic Function",
+# )
 
-visualizeFunction3D(
-    func=weierstrass_fun,
-    bounds=[[-0.5, 0.5], [-0.5, 0.5]],
-    minima=[0, 0],
-    func_name="Weierstrass Function",
-)
+# visualizeFunction3D(
+#     func=weierstrass_fun,
+#     bounds=[[-0.5, 0.5], [-0.5, 0.5]],
+#     minima=[0, 0],
+#     func_name="Weierstrass Function",
+# )
