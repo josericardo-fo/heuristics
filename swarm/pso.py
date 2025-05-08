@@ -30,6 +30,34 @@ def rosenbrock_fun(x):
     """
     return 100*(x[1] - x[0]**2)**2 + (x[0]-1)**2
 
+def elliptic_fun(x):
+    """High Conditioned Elliptic Function
+    Domain: -100 < xi < 100
+    Global minimum: f_min(0,..,0)=0
+    """
+    n = len(x)
+    result = 0
+    for i in range(n):
+        result += (10**6)**(i/(n-1)) * x[i]**2
+    return result
+
+def weierstrass_fun(x):
+    """Weierstrass function
+    Domain: -0.5 < xi < 0.5
+    Global minimum: f_min(0,..,0)=0
+    """
+    a = 0.5
+    b = 3.0
+    kmax = 20
+
+    sum_x = 0
+    for i in range(len(x)):
+        for k in range(kmax+1):
+            sum_x += (a**k) * np.cos(2 * np.pi * b**k * np.pi * (x[i] + 0.5))
+    sum_0 = 0
+    for k in range(kmax+1):
+        sum_0 += a**k * np.cos(2 * np.pi * b**k * 0.5)
+    return sum_x - len(x) * sum_0
 
 def pso(func, bounds, swarm_size=10, inertia=0.5, pa=0.8, ga=0.9, 
         max_vnorm=10, num_iters=100, verbose=False, func_name=None):
@@ -247,7 +275,7 @@ def experiment_suits():
 
 
 ## Perform experiment sets
-# experiment_suits()
+#experiment_suits()
 
 
 
@@ -262,3 +290,16 @@ history = pso(rosenbrock_fun, bounds=[[-2,2],[-2,2]], swarm_size=30, inertia=0.5
 print('global best:',history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
 visualizeHistory2D(func=rosenbrock_fun, history=history, bounds=[[-2,2],[-2,2]], minima=[1,1], func_name='Rosenbrock Function', save2mp4=False, save2gif=False,)
 
+## Elliptic function
+history = pso(elliptic_fun, bounds=[[-100,100],[-100,100]], swarm_size=30, inertia=0.5, 
+              num_iters=50, verbose=1, func_name='Elliptic Function')
+print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
+visualizeHistory2D(func=elliptic_fun, history=history, bounds=[[-100,100],[-100,100]], 
+                  minima=[0,0], func_name='Elliptic Function', save2mp4=False, save2gif=False)
+
+## Weierstrass func
+history = pso(weierstrass_fun, bounds=[[-0.5,0.5],[-0.5,0.5]], swarm_size=30, inertia=0.5, 
+              num_iters=50, verbose=1, func_name='Weierstrass Function')
+print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
+visualizeHistory2D(func=weierstrass_fun, history=history, bounds=[[-0.5,0.5],[-0.5,0.5]], 
+                  minima=[0,0], func_name='Weierstrass Function', save2mp4=False, save2gif=False)
