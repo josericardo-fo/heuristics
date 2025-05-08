@@ -231,6 +231,47 @@ def visualizeHistory2D(func=None, history=None, bounds=None,
     else:
         plt.show()
 
+def visualizeFunction3D(func, bounds, minima=None, func_name='', resolution=50, view_angle=(30,45)):
+    """Visualize the optimization function in 3D
+    # Arguments
+        func: object function to be visualized
+        bounds: list, bounds of each dimension [[-x,x],[-y,y]]
+        minima: list, the exact minima to show in the plot [x,y]
+        func_name: str, the name of the object function
+        resolution: int, resolution of the mesh grid
+        view_angle: tuple, elevation and azimuth angles for the 3D view
+    """
+    print(f'## Visualizing 3D surface for {func_name}')
+    assert len(bounds) == 2, "This visualization only works for 2D functions"
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    x = np.linspace(bounds[0][0], bounds[0][1], resolution)
+    y = np.linspace(bounds[1][0], bounds[1][1], resolution)
+    X, Y = np.meshgrid(x, y)
+
+    Z = np.zeros_like(X)
+    for i in range(resolution):
+        for j in range(resolution):
+            Z[i, j] = func([X[i, j], Y[i, j]])
+    
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8,linewidth=0, antialiased=True)
+
+    fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='f(x,y)')
+
+    if minima is not None:
+        min_z = func(minima)
+        ax.scatter(minima[0], minima[1], min_z, color='red', s=100, marker='*', label=f'Global Minimum ({minima[0]},{minima[1]}): {min_z:.5f}')
+        ax.legend()
+    ax.set_ylabel('Y')
+    ax.set_zlabel('f(X,Y)')
+    ax.set_title(f'3D Surface of {func_name}')
+    ax.view_init(elev=view_angle[0], azim=view_angle[1])
+
+    plt.tight_layout()
+    plt.show()
+
 
 def experiment_suits():
     """Perform PSO Experiments
@@ -240,14 +281,18 @@ def experiment_suits():
     # settings
     save2mp4 = False
     save2gif = False
-    obj_functions = [rosenbrock_fun, ackley_fun]
-    obj_func_names = ['Rosenbrock Function', 'Ackley Function']
+    obj_functions = [rosenbrock_fun, ackley_fun, elliptic_fun, weierstrass_fun]
+    obj_func_names = ['Rosenbrock Function', 'Ackley Function', 'Elliptic Function', 'Weierstrass Function']
     each_boundaries = [
         [[-2,2],[-2,2]],
         [[-32,32],[-32,32]],
+        [[-100,100],[-100,100]],
+        [[-0.5,0.5],[-0.5,0.5]],
     ]
     global_minima = [
         [1,1],
+        [0,0],
+        [0,0],
         [0,0],
     ]
     swarmsizes_for_each_trial = [5, 15, 35, 50]
@@ -272,8 +317,7 @@ def experiment_suits():
                             func_name=ofname, 
                             save2mp4=save2mp4,
                             save2gif=save2gif)
-
-
+            
 ## Perform experiment sets
 #experiment_suits()
 
@@ -281,25 +325,46 @@ def experiment_suits():
 
 ## If you want to manually excute
 ## Ackley func
-history = pso(ackley_fun, bounds=[[-32,32],[-32,32]], swarm_size=30, inertia=0.5, num_iters=50, verbose=1, func_name='Ackley Function')
-print('global best:',history['global_best'][-1], ', global best position:', history['global_best'][-1])
-visualizeHistory2D(func=ackley_fun, history=history, bounds=[[-32,32],[-32,32]], minima=[0,0], func_name='Ackley Function', save2mp4=False, save2gif=False,)
+# history = pso(ackley_fun, bounds=[[-32,32],[-32,32]], swarm_size=30, inertia=0.5, num_iters=50, verbose=1, func_name='Ackley Function')
+# print('global best:',history['global_best'][-1], ', global best position:', history['global_best'][-1])
+# visualizeHistory2D(func=ackley_fun, history=history, bounds=[[-32,32],[-32,32]], minima=[0,0], func_name='Ackley Function', save2mp4=False, save2gif=False,)
 
-## Rosenbrock func
-history = pso(rosenbrock_fun, bounds=[[-2,2],[-2,2]], swarm_size=30, inertia=0.5, num_iters=50, verbose=1, func_name='Rosenbrock Function')
-print('global best:',history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
-visualizeHistory2D(func=rosenbrock_fun, history=history, bounds=[[-2,2],[-2,2]], minima=[1,1], func_name='Rosenbrock Function', save2mp4=False, save2gif=False,)
+# ## Rosenbrock func
+# history = pso(rosenbrock_fun, bounds=[[-2,2],[-2,2]], swarm_size=30, inertia=0.5, num_iters=50, verbose=1, func_name='Rosenbrock Function')
+# print('global best:',history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
+# visualizeHistory2D(func=rosenbrock_fun, history=history, bounds=[[-2,2],[-2,2]], minima=[1,1], func_name='Rosenbrock Function', save2mp4=False, save2gif=False,)
 
-## Elliptic function
-history = pso(elliptic_fun, bounds=[[-100,100],[-100,100]], swarm_size=30, inertia=0.5, 
-              num_iters=50, verbose=1, func_name='Elliptic Function')
-print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
-visualizeHistory2D(func=elliptic_fun, history=history, bounds=[[-100,100],[-100,100]], 
-                  minima=[0,0], func_name='Elliptic Function', save2mp4=False, save2gif=False)
+# ## Elliptic function
+# history = pso(elliptic_fun, bounds=[[-100,100],[-100,100]], swarm_size=30, inertia=0.5, 
+#               num_iters=50, verbose=1, func_name='Elliptic Function')
+# print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
+# visualizeHistory2D(func=elliptic_fun, history=history, bounds=[[-100,100],[-100,100]], 
+#                   minima=[0,0], func_name='Elliptic Function', save2mp4=False, save2gif=False)
 
-## Weierstrass func
-history = pso(weierstrass_fun, bounds=[[-0.5,0.5],[-0.5,0.5]], swarm_size=30, inertia=0.5, 
-              num_iters=50, verbose=1, func_name='Weierstrass Function')
-print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
-visualizeHistory2D(func=weierstrass_fun, history=history, bounds=[[-0.5,0.5],[-0.5,0.5]], 
-                  minima=[0,0], func_name='Weierstrass Function', save2mp4=False, save2gif=False)
+# ## Weierstrass func
+# history = pso(weierstrass_fun, bounds=[[-0.5,0.5],[-0.5,0.5]], swarm_size=30, inertia=0.5, 
+#               num_iters=50, verbose=1, func_name='Weierstrass Function')
+# print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
+# visualizeHistory2D(func=weierstrass_fun, history=history, bounds=[[-0.5,0.5],[-0.5,0.5]], 
+#                   minima=[0,0], func_name='Weierstrass Function', save2mp4=False, save2gif=False)
+
+# Visualize all functions in 3D
+visualizeFunction3D(func=rosenbrock_fun, 
+                    bounds=[[-2,2],[-2,2]], 
+                    minima=[1,1], 
+                    func_name='Rosenbrock Function')
+
+visualizeFunction3D(func=ackley_fun, 
+                    bounds=[[-32,32],[-32,32]], 
+                    minima=[0,0], 
+                    func_name='Ackley Function')
+
+visualizeFunction3D(func=elliptic_fun, 
+                    bounds=[[-100,100],[-100,100]], 
+                    minima=[0,0], 
+                    func_name='Elliptic Function')
+
+visualizeFunction3D(func=weierstrass_fun, 
+                    bounds=[[-0.5,0.5],[-0.5,0.5]], 
+                    minima=[0,0], 
+                    func_name='Weierstrass Function')
