@@ -357,10 +357,16 @@ def visualizeFunction3D(
     plt.show()
 
 
-def experiment_suits():
+def experiment_suits(visualize=True):
     """Perform PSO Experiments
     Current test set:
         ['Elliptic Function', 'Weierstrass Function']
+
+    # Arguments
+        visualize: boolean, whether to visualize results or not
+
+    # Returns
+        results: list of results from each experiment
     """
     # settings
     save2mp4 = False
@@ -372,6 +378,8 @@ def experiment_suits():
     ]
     swarmsizes_for_each_trial = [30, 50, 100]
     num_iterations = [500, 1000, 2000]
+
+    results = []
 
     # experiments
     for ofunc, ofname in zip(obj_functions, obj_func_names):
@@ -388,78 +396,189 @@ def experiment_suits():
                 verbose=0,
                 func_name=ofname,
             )
+
+            # armazenar resultados
+            result = {
+                "function": ofname,
+                "swarm_size": swarm_size,
+                "iterations": num_iters,
+                "best_fitness": history["global_best_fitness"][-1],
+                "best_position": [
+                    history["global_best"][-1][0],
+                    history["global_best"][-1][1],
+                ],
+                "history": history,  # Armazenar o histórico completo
+            }
+            results.append(result)
+
             print(
                 "global best:",
                 history["global_best_fitness"][-1],
                 ", global best position:",
                 history["global_best"][-1],
             )
+
             # visualize
-            visualizeHistory2D(
-                func=ofunc,
-                history=history,
-                bounds=[[-100, 100], [-100, 100]],
-                minima=[0, 0],
-                func_name=ofname,
-                save2mp4=save2mp4,
-                save2gif=save2gif,
+            if visualize:
+                visualizeHistory2D(
+                    func=ofunc,
+                    history=history,
+                    bounds=[[-100, 100], [-100, 100]],
+                    minima=[0, 0],
+                    func_name=ofname,
+                    save2mp4=save2mp4,
+                    save2gif=save2gif,
+                )
+
+    return results
+
+
+def run_multiple_experiments(num_runs=30):
+    """Run multiple experiments and collect statistics
+
+    # Arguments
+        num_runs: int, number of times to run experiments
+
+    # Returns
+        stats: dictionary with statistics of the experiments
+        best_histories: dictionary with the best history for each configuration
+    """
+    import pandas as pd
+
+    all_results = []
+    best_histories = {}  # Armazenar a melhor história para cada configuração
+
+    print(f"Executando {num_runs} experimentos...")
+    for i in range(num_runs):
+        print(f"Execução {i + 1}/{num_runs}")
+        # Execute sem visualização para economizar tempo
+        results = experiment_suits(visualize=False)
+
+        # Para cada resultado obtido
+        for result in results:
+            key = (result["function"], result["swarm_size"], result["iterations"])
+
+            # Verificar se este é o melhor resultado para esta configuração
+            if (
+                key not in best_histories
+                or result["best_fitness"] < best_histories[key]["best_fitness"]
+            ):
+                best_histories[key] = {
+                    "best_fitness": result["best_fitness"],
+                    "best_position": result["best_position"],
+                    "history": result.get(
+                        "history", None
+                    ),  # Armazenar o histórico completo
+                }
+
+        all_results.extend(results)
+
+    # Organizar resultados por função e configuração
+    results_by_config = {}
+    for result in all_results:
+        key = (result["function"], result["swarm_size"], result["iterations"])
+        if key not in results_by_config:
+            results_by_config[key] = []
+        results_by_config[key].append(result["best_fitness"])
+
+    # Calcular estatísticas
+    stats = []
+    for key, values in results_by_config.items():
+        function, swarm_size, iterations = key
+        stat = {
+            "function": function,
+            "swarm_size": swarm_size,
+            "iterations": iterations,
+            "mean": np.mean(values),
+            "std_dev": np.std(values),
+            "median": np.median(values),
+            "min": np.min(values),
+            "max": np.max(values),
+        }
+        stats.append(stat)
+
+    # Converter para DataFrame para visualização mais fácil
+    df = pd.DataFrame(stats)
+
+    # Ordenar por função, tamanho do enxame e iterações
+    df = df.sort_values(by=["function", "swarm_size", "iterations"])
+
+    return df, best_histories
+
+
+def plot_best_fitness_curves(best_histories):
+    """Plot the fitness curve for the best result of each configuration
+
+    # Arguments
+        best_histories: dictionary with the best history for each configuration
+    """
+    # Agrupar configurações por função
+    configs_by_function = {}
+    for key in best_histories:
+        function, _, _ = key
+        if function not in configs_by_function:
+            configs_by_function[function] = []
+        configs_by_function[function].append(key)
+
+    # Para cada função, criar um gráfico com todas as configurações
+    for function_name, configs in configs_by_function.items():
+        plt.figure(figsize=(12, 8))
+        plt.title(f"Curva de Convergência - Melhor Resultado para {function_name}")
+        plt.xlabel("Iterações")
+        plt.ylabel("Melhor Fitness (escala log)")
+        plt.yscale("log")
+
+        for config in configs:
+            _, swarm_size, iterations = config
+            history = best_histories[config].get("history")
+
+            # Se temos o histórico completo, usamos ele
+            if history is not None and "global_best_fitness" in history:
+                fitness_values = history["global_best_fitness"]
+                label = f"Enxame: {swarm_size}, Iterações: {iterations}"
+                plt.plot(range(1, len(fitness_values) + 1), fitness_values, label=label)
+            # Caso contrário, mostramos apenas o valor final
+            else:
+                best_fitness = best_histories[config]["best_fitness"]
+                plt.scatter(
+                    iterations,
+                    best_fitness,
+                    label=f"Enxame: {swarm_size}, Iterações: {iterations} (apenas valor final)",
+                )
+
+        plt.grid(True, which="both", ls="--", alpha=0.7)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+
+def display_experiment_statistics(stats_df, best_histories=None):
+    """Display experiment statistics in a formatted way and plot best fitness curves
+
+    # Arguments
+        stats_df: pandas DataFrame with statistics
+        best_histories: dictionary with the best history for each configuration
+    """
+    print("\n=== ESTATÍSTICAS DE 30 EXECUÇÕES ===\n")
+
+    # Agrupar por função para melhor visualização
+    for func_name, group in stats_df.groupby("function"):
+        print(f"\n== Função: {func_name} ==")
+        print(
+            f"{'Enxame':>10} {'Iterações':>12} {'Média':>15} {'Desvio Padrão':>15} {'Mediana':>15} {'Mínimo':>15} {'Máximo':>15}"
+        )
+        print("-" * 100)
+
+        for _, row in group.iterrows():
+            print(
+                f"{row['swarm_size']:10d} {row['iterations']:12d} {row['mean']:15.6e} {row['std_dev']:15.6e} {row['median']:15.6e} {row['min']:15.6e} {row['max']:15.6e}"
             )
 
+    # Plotar as curvas de fitness dos melhores resultados se disponíveis
+    if best_histories:
+        plot_best_fitness_curves(best_histories)
 
-## Perform experiment sets
-experiment_suits()
 
-
-## If you want to manually execute
-## Ackley func
-# history = pso(ackley_fun, bounds=[[-32,32],[-32,32]], swarm_size=30, inertia=0.5, num_iters=50, verbose=1, func_name='Ackley Function')
-# print('global best:',history['global_best'][-1], ', global best position:', history['global_best'][-1])
-# visualizeHistory2D(func=ackley_fun, history=history, bounds=[[-32,32],[-32,32]], minima=[0,0], func_name='Ackley Function', save2mp4=False, save2gif=False,)
-
-# ## Rosenbrock func
-# history = pso(rosenbrock_fun, bounds=[[-2,2],[-2,2]], swarm_size=30, inertia=0.5, num_iters=50, verbose=1, func_name='Rosenbrock Function')
-# print('global best:',history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
-# visualizeHistory2D(func=rosenbrock_fun, history=history, bounds=[[-2,2],[-2,2]], minima=[1,1], func_name='Rosenbrock Function', save2mp4=False, save2gif=False,)
-
-# ## Elliptic function
-# history = pso(elliptic_fun, bounds=[[-100,100],[-100,100]], swarm_size=30, inertia=0.5,
-#               num_iters=50, verbose=1, func_name='Elliptic Function')
-# print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
-# visualizeHistory2D(func=elliptic_fun, history=history, bounds=[[-100,100],[-100,100]],
-#                   minima=[0,0], func_name='Elliptic Function', save2mp4=False, save2gif=False)
-
-# ## Weierstrass func
-# history = pso(weierstrass_fun, bounds=[[-0.5,0.5],[-0.5,0.5]], swarm_size=30, inertia=0.5,
-#               num_iters=50, verbose=1, func_name='Weierstrass Function')
-# print('global best:', history['global_best_fitness'][-1], ', global best position:', history['global_best'][-1])
-# visualizeHistory2D(func=weierstrass_fun, history=history, bounds=[[-0.5,0.5],[-0.5,0.5]],
-#                   minima=[0,0], func_name='Weierstrass Function', save2mp4=False, save2gif=False)
-
-# Visualize all functions in 3D
-# visualizeFunction3D(
-#     func=rosenbrock_fun,
-#     bounds=[[-2, 2], [-2, 2]],
-#     minima=[1, 1],
-#     func_name="Rosenbrock Function",
-# )
-
-# visualizeFunction3D(
-#     func=ackley_fun,
-#     bounds=[[-32, 32], [-32, 32]],
-#     minima=[0, 0],
-#     func_name="Ackley Function",
-# )
-
-# visualizeFunction3D(
-#     func=elliptic_fun,
-#     bounds=[[-100, 100], [-100, 100]],
-#     minima=[0, 0],
-#     func_name="Elliptic Function",
-# )
-
-# visualizeFunction3D(
-#     func=weierstrass_fun,
-#     bounds=[[-0.5, 0.5], [-0.5, 0.5]],
-#     minima=[0, 0],
-#     func_name="Weierstrass Function",
-# )
+if __name__ == "__main__":
+    stats_df, best_histories = run_multiple_experiments(30)
+    display_experiment_statistics(stats_df, best_histories)
