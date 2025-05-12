@@ -7,3 +7,7 @@ O objetivo é explorar diferentes técnicas heurísticas e metaheurísticas para
 ## Projetos
 
 - [Eight Queens Problem](./eight_queens/): Implementação dos algoritmos Hill Climbing e Simulated Annealing para o problema das 8 rainhas.
+
+- [Genetic Algorithm](./ga/): Implementação de Algoritmo Genético para a resolução do Problema da Mochila.
+
+- [Swarm](./swarm/): Utilização do Método de Enxame para cálculo de cenários diferentes.
