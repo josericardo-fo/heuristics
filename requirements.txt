@@ -1,3 +1,5 @@
 numpy
 mealpy
 matplotlib
+tqdm
+ipywidgets
