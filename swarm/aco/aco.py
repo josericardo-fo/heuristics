@@ -49,21 +49,21 @@ class RotatedEllipticProblem(Problem):
                 [np.cos(self.angle), -np.sin(self.angle)],
                 [np.sin(self.angle), np.cos(self.angle)]
             ])
-    def obj_func(self, solution):
+    def obj_func(self, x):
         """
         Calculate the rotated elliptic function value
         
         Args:
-            solution: numpy array with the solution to evaluate
+            x: numpy array with the solution to evaluate
 
         Returns:
             float: objective function value
         """
-        n = len(solution)
+        n = len(x)
         if self.rotation_matrix is None or self.rotation_matrix.shape[0] != n:
             self.rotation_matrix = self.create_rotation_matrix(n)
 
-        x_rotated = np.dot(self.rotation_matrix, solution)
+        x_rotated = np.dot(self.rotation_matrix, x)
         result = 0
         for i in range(n):
             result += (10**6) ** (i / (n - 1)) * x_rotated[i] ** 2
@@ -104,17 +104,17 @@ class ShiftedRotatedWeierstrassProblem(Problem):
                 [np.sin(self.angle), np.cos(self.angle)]
             ])
         
-    def obj_func(self, solution):
+    def obj_func(self, x):
         """
         Calculate the shifted rotated Weierstrass function value
         
         Args:
-            solution: numpy array with the solution to evaluate
+            x: numpy array with the solution to evaluate
         
         Returns:
             float: objective function value
         """
-        n = len(solution)
+        n = len(x)
 
         if self.shift is None or len(self.shift) != n:
             self.shift = np.random.uniform(-0.4, 0.4, n)
@@ -122,7 +122,7 @@ class ShiftedRotatedWeierstrassProblem(Problem):
         if self.rotation_matrix is None or self.rotation_matrix.shape[0] != n:
             self.rotation_matrix = self.create_rotation_matrix(n)
 
-        x_shitfted = solution - self.shift
+        x_shitfted = x - self.shift
         x_rotated = np.dot(self.rotation_matrix, x_shitfted)
 
         a = 0.5
