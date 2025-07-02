@@ -10,7 +10,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
 MAT_FILE = "trabalho_final/data/IDRCShootOut2010Completo.mat"
-OUT_DIR = "trabalho_final/outputs_v1"
+OUT_DIR = "trabalho_final/outputs_v2"
 
 
 def load_data(mat_file: str) -> Tuple[np.ndarray, ...]:
@@ -58,6 +58,7 @@ def select_wavelengths_ga(
     n_features = Xtrain.shape[1]
 
     def fitness_func(ga_instance, solution, sol_idx):
+        λ = 0.01
         mask = solution >= 0.5
         if not np.any(mask):
             return -1e6
@@ -65,7 +66,8 @@ def select_wavelengths_ga(
         model.fit(Xtrain[:, mask], ytrain)
         pred = model.predict(Xval[:, mask])
         rmse = np.sqrt(mean_squared_error(yval, pred))
-        return -rmse
+        penalty = λ * mask.sum()
+        return -(rmse + penalty)
 
     def on_generation(ga_instance):
         best_rmse = -ga_instance.best_solution()[1]
