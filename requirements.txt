@@ -1,5 +1,8 @@
-numpy
-mealpy
-matplotlib
-tqdm
 ipywidgets
+matplotlib
+mealpy
+numpy
+pygad
+scikit-learn
+scipy
+tqdm
