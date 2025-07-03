@@ -217,7 +217,7 @@ def main():
     generate_plots(ga, wl_axis, selected_idx, ytest_rf, y_pred)
 
     # Console summary
-    print("\n========= RESUMO ===========")
+    print("\n========= RESUMO v2 ===========")
     print(f"RMSE (Val) : {val_rmse:8.4f}")
     print(f"# λ selecionados : {len(selected_idx)}")
     print("--- Teste (Reflectância) ---")
