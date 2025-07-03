@@ -283,7 +283,7 @@ def visualize_selected_wavelengths(selected_features, wavelengths=None):
     if wavelengths is not None and len(wavelengths) == len(selected_features):
         print(f"Selected wavelengths: {wavelengths[selected_features]}")
 
-def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=175):
+def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=175, track_swarm=False):
     """
     Complete pipeline for PSO feature selection
     
@@ -296,16 +296,18 @@ def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=
     wavelengths : array, optional
         Array of wavelength values (if available)
     alpha : float
-        Penalty weight for feature count (MUCH LOWER for more features)
+        Penalty weight for feature count
     max_features : int
-        Target maximum number of features (now higher)
+        Target maximum number of features
+    track_swarm : bool
+        Whether to track swarm evolution for visualization
         
     Returns:
     --------
     selected_features : array
         Binary array of selected features
     results : dict
-        Dictionary of evaluation metrics
+        Dictionary of evaluation metrics and history
     """
     # Define a custom objective function that enforces the feature limit
     def custom_obj_func(selected_features):
@@ -327,9 +329,20 @@ def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=
     # Initialize Binary PSO
     optimizer = BinaryPSO(n_particles=30, dimensions=n_features, options=options)
     
+    # Track swarm evolution if requested
+    tracked_data = None
+    tracked_wrapper = None
+    if track_swarm:
+        tracked_data, tracked_wrapper = track_swarm_evolution(optimizer, max_iters=50, save_every=2)
+    
     # Run the optimization
     print(f"Running Binary PSO for feature selection (target features: 150-200)...")
-    best_cost, best_pos = optimizer.optimize(custom_obj_func, iters=50, verbose=True)
+    if track_swarm and tracked_wrapper is not None:
+        # Use the tracking wrapper around the objective function
+        wrapped_obj_func = tracked_wrapper(custom_obj_func)
+        best_cost, best_pos = optimizer.optimize(wrapped_obj_func, iters=50, verbose=True)
+    else:
+        best_cost, best_pos = optimizer.optimize(custom_obj_func, iters=50, verbose=True)
     
     # Make sure features are within our desired range (150-200)
     best_pos_count = np.sum(best_pos)
@@ -355,6 +368,9 @@ def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=
     
     # Evaluate with MLR
     results = evaluate_selected_features(X, y, selected_features)
+    results['cost_history'] = optimizer.cost_history
+    if tracked_data:
+        results['tracked_data'] = tracked_data
     
     # Compare with full model (all features)
     X_train_full, X_test_full, y_train_full, y_test_full = train_test_split(
@@ -400,16 +416,67 @@ def limit_features(selected_features, max_features=200):
             limited_features[i, keep_indices] = 1
             
     return limited_features
-
-# Example usage
-if __name__ == "__main__":
-    import scipy.io
-    data = scipy.io.loadmat('/Users/orlow/dev/heuristics/trabalho_final/data/IDRCShootOut2010Completo.mat')
-    X = data['XcalTrans']
-    y = data['YcalTrans'][:, 0]  # Hemoglobin values
-    wavelengths = data.get('wavelengths', None)  # If available
+def track_swarm_evolution(optimizer, max_iters=50, save_every=5):
+    """
+    Tracks particle positions during PSO optimization
     
-    # Run with target of 150-200 features
-    selected_features, results = run_pso_feature_selection(
-        X, y, wavelengths, alpha=0.001, max_features=175
-    )
+    Parameters:
+    -----------
+    optimizer : BinaryPSO
+        The PSO optimizer
+    max_iters : int
+        Maximum number of iterations
+    save_every : int
+        Save particle positions every N iterations
+        
+    Returns:
+    --------
+    tracked_data, wrapper_function
+    """
+    # Storage for tracked data
+    tracked_data = {
+        'positions': [],      # Particle positions at each saved iteration
+        'iterations': [],     # Iteration numbers that were saved
+        'best_positions': [], # Global best position at each saved iteration
+        'diversity': []       # Diversity measure at each saved iteration
+    }
+    
+    # Counter for iterations
+    iteration_count = [0]  # Using list for mutable reference
+    
+    # Create a wrapper for the objective function
+    def wrapper(objective_func):
+        def tracked_objective(position, **kwargs):
+            # Call the original objective function
+            costs = objective_func(position, **kwargs)
+            
+            # Save data at specified intervals
+            if iteration_count[0] % save_every == 0 or iteration_count[0] == max_iters - 1:
+                # Calculate diversity (mean pairwise Hamming distance)
+                n_particles = position.shape[0]
+                diversity = 0.0
+                if n_particles > 1:
+                    for i in range(n_particles):
+                        for j in range(i+1, n_particles):
+                            # Hamming distance between binary vectors
+                            diversity += np.sum(position[i] != position[j])
+                    diversity /= (n_particles * (n_particles - 1) / 2)
+                
+                # Store data
+                tracked_data['positions'].append(position.copy())
+                tracked_data['iterations'].append(iteration_count[0])
+                if hasattr(optimizer, 'swarm') and hasattr(optimizer.swarm, 'best_pos'):
+                    tracked_data['best_positions'].append(optimizer.swarm.best_pos.copy())
+                tracked_data['diversity'].append(diversity)
+                
+                # Print update
+                if iteration_count[0] % 10 == 0 or iteration_count[0] == max_iters - 1:
+                    print(f"Iteration {iteration_count[0]}: Diversity = {diversity:.4f}")
+            
+            # Increment counter
+            iteration_count[0] += 1
+            return costs
+        
+        return tracked_objective
+    
+    return tracked_data, wrapper
