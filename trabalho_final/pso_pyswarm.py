@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
-def evaluate_feature_subset(selected_features, X, y, alpha=0.001, max_features=175):
+def evaluate_feature_subset(selected_features, X, y, alpha=0.001, max_features=20):
     """
     Fitness function for PSO feature selection with MUCH gentler penalty
     
@@ -283,7 +283,7 @@ def visualize_selected_wavelengths(selected_features, wavelengths=None):
     if wavelengths is not None and len(wavelengths) == len(selected_features):
         print(f"Selected wavelengths: {wavelengths[selected_features]}")
 
-def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=175, track_swarm=False):
+def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.01, max_features=20, track_swarm=False):
     """
     Complete pipeline for PSO feature selection
     
@@ -309,25 +309,36 @@ def run_pso_feature_selection(X, y, wavelengths=None, alpha=0.001, max_features=
     results : dict
         Dictionary of evaluation metrics and history
     """
-    # Define a custom objective function that enforces the feature limit
+    # First key change: Use a HARD feature count limit in the objective function
     def custom_obj_func(selected_features):
-        # First apply the feature count limit - now with higher max
-        limited_features = limit_features(selected_features, max_features=200)  # Upper limit of 200
-        # Then evaluate with the limited features
-        return evaluate_feature_subset(limited_features, X, y, alpha=alpha, max_features=max_features)
+        # For each particle, strictly limit to max_features
+        limited_features = np.zeros_like(selected_features)
+        
+        for i in range(selected_features.shape[0]):
+            # If more than max_features are selected, keep only the max_features highest ones
+            if np.sum(selected_features[i]) > max_features:
+                # Get indices sorted by feature values (decreasing)
+                sorted_indices = np.argsort(-selected_features[i])
+                # Keep only the top max_features
+                limited_features[i, sorted_indices[:max_features]] = 1
+            else:
+                limited_features[i] = selected_features[i]
+        
+        # Evaluate with the strictly limited features
+        return evaluate_feature_subset(limited_features, X, y, alpha=alpha)
     
     # Setup options for PSO
     n_features = X.shape[1]
     options = {
-        'c1': 0.5,  # Cognitive parameter
-        'c2': 0.3,  # Social parameter
-        'w': 0.9,   # Inertia parameter
-        'k': 5,     # Number of neighbors to consider (REQUIRED)
-        'p': 2      # Norm order for distance calculation (REQUIRED)
+        'c1': 0.7,  # Increase cognitive parameter (personal learning)
+        'c2': 0.5,  # Increase social parameter (global learning)
+        'w': 0.8,   # Slightly reduce inertia for better convergence
+        'k': 3,     # Fewer neighbors
+        'p': 2      # Keep Euclidean distance
     }
     
     # Initialize Binary PSO
-    optimizer = BinaryPSO(n_particles=30, dimensions=n_features, options=options)
+    optimizer = BinaryPSO(n_particles=50, dimensions=n_features, options=options)
     
     # Track swarm evolution if requested
     tracked_data = None

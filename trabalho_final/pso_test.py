@@ -140,7 +140,7 @@ def main():
     
     # Run PSO with tracking enabled
     selected_features, results = run_pso_feature_selection(
-        Xcal_tr, ycal_tr, wavelengths=wl_axis, alpha=0.001, max_features=175, track_swarm=True
+        Xcal_tr, ycal_tr, wavelengths=wl_axis, alpha=0.01, max_features=20, track_swarm=True
     )
     
     # Convert to indices
@@ -262,7 +262,7 @@ def visualize_swarm_evolution(tracked_data, wl_axis, out_dir=OUT_DIR):
         aspect='auto', 
         cmap='viridis', 
         interpolation='nearest',
-        extent=[0, n_features, iterations[-1], iterations[0]]
+        extent=(0, n_features, iterations[-1], iterations[0])
     )
     plt.colorbar(label="Selection Frequency")
     plt.title("Feature Selection Frequency over Iterations")
